@@ -1,0 +1,63 @@
+<ProductStore productStoreId="PJ_SELL_PAYPAL" payPalAccessLogin="Y"/> 
+<PaymentGatewayConfig paymentGatewayConfigId="PAY_PAYPAL" paymentGatewayConfigTypeId="PAYPAL" description="Paypal : Paypal verification"/>
+<PaymentGatewayPayPal paymentGatewayConfigId="PAY_PAYPAL" returnUrl="/exchange/paypal/paypal-access-callback" partyIdPrefix="paypal_"/>
+<ProductStorePaymentSetting productStoreId="PJ_SELL_PAYPAL"  paymentMethodTypeId="EXT_PJ_PAYPAL"   paymentServiceTypeEnumId="PRDS_PAY_CREDIT" paymentGatewayConfigId="PAY_PAYPAL"/>
+
+<ElectronicText dataResourceId="PAY_OFFER_CNTNT">
+    <textData><![CDATA[
+        <#if productStorePaymentSettings?has_content>
+          <div id="offercontent" class="offers sellForm ">
+            <#list productStorePaymentSettings as productStorePaymentSetting>
+              <div class="image col">
+                <#if publishPointContentId?has_content>
+                  <@renderSubContent contentId=publishPointContentId mapKey="LOGO"/>
+                </#if>
+              </div>
+              <div class="info col">
+                <#assign offer = (getOffer.call(productStorePaymentSetting.paymentMethodTypeId))?if_exists />
+                <h5 class="name">
+                  Your Offer: <br>
+                  <span class="amount"><@ofbizCurrency amount=offer /> Walmart Card </span>
+                  for your  <#if sellCartSize == 1><@ofbizCurrency amount=totalAmount /> Gift Card <#else>Gift Cards</#if>
+                </h5>
+                <p>You will electronically receive a Walmart Card for this amount.</p>
+                <p class="alignCenter">
+                  <form id="${productStorePaymentSetting.paymentMethodTypeId}" class="partnerLoginForm" action="selectPaymentPayoutOption" method="post">
+                    <input type="hidden" name="paymentMethodTypeId" value="${productStorePaymentSetting.paymentMethodTypeId}"/>
+                    <input type="hidden" name="blackBoxToken" value=""/>
+                    <input type="hidden" name="redirectUrl" value="<@ofbizUrl>selectPaymentPayoutOption?paymentMethodTypeId=${productStorePaymentSetting.paymentMethodTypeId?if_exists}</@ofbizUrl>"/>
+                  </form>
+                  <#if userLogin?has_content && userLogin.userLoginId != "anonymous">
+                      <a class="button" href="<@ofbizUrl>selectPaymentPayoutOption?paymentMethodTypeId=${productStorePaymentSetting.paymentMethodTypeId?if_exists}</@ofbizUrl>">
+                          <span class="inner"> Accept this Offer <img class="arrow icon" src="/static/images/transparent.png" alt="" /></span>
+                      </a>
+                  <#else>
+                      <a class="button" href="javascript:checkoutUtils.checkoutSellPartner('<@ofbizUrl>selectPaymentPayoutOption?paymentMethodTypeId=${productStorePaymentSetting.paymentMethodTypeId?if_exists}</@ofbizUrl>','${productStorePaymentSetting.paymentMethodTypeId?if_exists}', '<@ofbizUrl>checkLogin</@ofbizUrl>')">
+                          <span class="inner">Accept this Offer <img class="arrow icon" src="/static/images/transparent.png" alt="" /></span>
+                      </a>
+                  </#if>
+                  <a class="cancel" href="<@ofbizUrl>clearCart</@ofbizUrl>">No thanks, I'll keep my card(s)</a>
+                </p>
+              </div>
+            </#list>
+          </div>
+         <div class="pp modal"></div>
+      </#if>
+    ]]></textData>
+</ElectronicText>
+
+<DataResource dataResourceId="PAY_PAYPAL_LOGIN" dataResourceTypeId="ELECTRONIC_TEXT" dataTemplateTypeId="FTL" mimeTypeId="text/html" localeString="en_US" isPublic="Y" dataResourceName="Paypal Login"/>
+<ElectronicText dataResourceId="PAY_PAYPAL_LOGIN">
+    <textData><![CDATA[
+        <div id="login_container">
+        <div class="header alignCenter">
+            <h2>Login to view your Walmart card</h2>
+        </div>
+        <p class="alignCenter">To complete the transaction you need to login using PayPal Access.</p>
+    ]]></textData>
+</ElectronicText>
+<Content contentId="PAY_PAYPAL_LOGIN" contentTypeId="DOCUMENT" ownerContentId="PAY_CONTENT" dataResourceId="PAY_PAYPAL_LOGIN"
+    contentName="Paypal Login Walmart" description="PayPal Login Walmart" mimeTypeId="text/html" localeString="en_US"/>
+<ContentAssoc contentId="PAY_CONTENT" contentIdTo="PAY_PAYPAL_LOGIN" mapKey="PARTNER_PAYPAL_LOGIN" contentAssocTypeId="SUB_CONTENT"
+        fromDate="2010-10-18 12:00:00.000"/>
+

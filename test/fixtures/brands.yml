@@ -1,0 +1,13 @@
+one:
+  name: MyString
+  discount: 9.99
+  value: 9.99
+  image_url: MyString
+  description: MyText
+
+two:
+  name: MyString
+  discount: 9.99
+  value: 9.99
+  image_url: MyString
+  description: MyText

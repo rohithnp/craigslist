@@ -1,0 +1,226 @@
+<%- model_class = Brand -%>
+<div class="page-header">
+  <h1><%=t '.title', :default => model_class.model_name.human.pluralize %></h1>
+</div>
+<div class = "row">
+  <div class = "span10 offset1"/>
+    <input id="searchInput" class="span8" type="text" placeholder="Start Typing"><br/>
+    <!-- <%= link_to t('.new', :default => t("helpers.links.new")),
+              new_brand_path,
+              :class => 'btn btn-primary span8' %> -->
+  </div>
+  <table class="table table-striped table-condensed table-bordered table-hover" style="display:none">
+    <thead>
+      <tr>
+        <th><%= model_class.human_attribute_name(:id) %></th>
+        <th><%= model_class.human_attribute_name(:name) %></th>
+        <th><%= model_class.human_attribute_name(:discount) %></th>
+        <th><%= model_class.human_attribute_name(:value) %></th>
+        <th><%= model_class.human_attribute_name(:image_url) %></th>
+        <th><%= model_class.human_attribute_name(:description) %></th>
+        <th><%= model_class.human_attribute_name(:updated_at) %></th>
+
+        <th><%=t '.actions', :default => t("helpers.actions") %></th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <% @brands.each_with_index do |brand,index| %>
+        <tr class="data-link">
+          <td><%= link_to index, brand_path(brand) %></td>
+          <td><%= brand.name %></td>
+          <td><%= brand.discount %></td>
+          <td><p class="text-success"><%= brand.value %></p></td>
+          <td><img src="<%=brand.image_url %>" class="img-rounded"</td>
+          <td><%= brand.description %></td>
+          <td><%=l brand.updated_at %></td>
+          <td>
+            <%= link_to t('.edit', :default => t("helpers.links.edit")),
+                        edit_brand_path(brand), :class => 'btn btn-mini' %>
+            <%= link_to t('.destroy', :default => t("helpers.links.destroy")),
+                        brand_path(brand),
+                        :method => :delete,
+                        :data => { :confirm => t('.confirm', :default => t("helpers.links.confirm", :default => 'Are you sure?')) },
+                        :class => 'btn btn-mini btn-danger' %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+
+  <ul class="thumbnails span12">
+    <% @brands.each_with_index do |brand,index| %>
+    <li class="span2">
+      <div class="thumbnail">
+        <%= link_to(brand) do %>
+          <img class="img-circle"src="<%=brand.image_url%>"/>
+          <p class="text-info"><%=truncate(brand.name,:length => 15)%></p>
+        <% end %>
+      </div>
+    </li>
+    <%end%>
+  </ul>
+</div>
+
+<!--
+<ul class="ff-items span12">
+  <% @brands.each_with_index do |brand,index| %>
+  <li class="span2">
+      <%= link_to(brand) do %>
+        <span>
+          <p id="brandName" style="display:none;"><%=brand.name%></p>
+          <p class="text-success"><%= brand.value %></p>
+          <p class="text-failure"><%= brand.retailer_id %></p>
+        </span>    
+        <img src="<%=brand.image_url%>"/>
+        <p class="text-success"><%=brand.name%></p>
+
+      <% end %>
+  </li>
+  <% end %>
+</ul>
+-->
+<script>
+String.prototype.score = function(abbreviation,offset) {
+  offset = offset || 0 // TODO: I think this is unused... remove
+ 
+  if(abbreviation.length == 0) return 0.9
+  if(abbreviation.length > this.length) return 0.0
+
+  for (var i = abbreviation.length; i > 0; i--) {
+    var sub_abbreviation = abbreviation.substring(0,i)
+    var index = this.indexOf(sub_abbreviation)
+
+
+    if(index < 0) continue;
+    if(index + abbreviation.length > this.length + offset) continue;
+
+    var next_string       = this.substring(index+sub_abbreviation.length)
+    var next_abbreviation = null
+
+    if(i >= abbreviation.length)
+      next_abbreviation = ''
+    else
+      next_abbreviation = abbreviation.substring(i)
+ 
+    var remaining_score   = next_string.score(next_abbreviation,offset+index)
+ 
+    if (remaining_score > 0) {
+      var score = this.length-next_string.length;
+
+      if(index != 0) {
+        var j = 0;
+
+        var c = this.charCodeAt(index-1)
+        if(c==32 || c == 9) {
+          for(var j=(index-2); j >= 0; j--) {
+            c = this.charCodeAt(j)
+            score -= ((c == 32 || c == 9) ? 1 : 0.15)
+          }
+
+          // XXX maybe not port this heuristic
+          // 
+          //          } else if ([[NSCharacterSet uppercaseLetterCharacterSet] characterIsMember:[self characterAtIndex:matchedRange.location]]) {
+          //            for (j = matchedRange.location-1; j >= (int) searchRange.location; j--) {
+          //              if ([[NSCharacterSet uppercaseLetterCharacterSet] characterIsMember:[self characterAtIndex:j]])
+          //                score--;
+          //              else
+          //                score -= 0.15;
+          //            }
+        } else {
+          score -= index
+        }
+      }
+   
+      score += remaining_score * next_string.length
+      score /= this.length;
+      return score
+    }
+  }
+  return 0.0
+}
+
+jQuery.fn.liveUpdate = function(list){
+  list = jQuery(list);
+
+  if ( list.length ) {
+    var rows = list.children('li'),//.children('a').children('span'),
+      cache = rows.map(function(){
+        return $(this).find('p')[0].innerHTML.toLowerCase();
+      });
+    this
+      .keyup(filter).keyup()
+      .parents('form').submit(function(){
+        return false;
+      });
+  }
+    
+  return this;
+    
+  function filter(){
+    var term = jQuery.trim( jQuery(this).val().toLowerCase() ), scores = [];
+    if ( !term ) {
+      rows.show();
+    } else {
+      rows.hide();
+      cache.each(function(i){
+        var score = this.score(term);
+        if (score > .6) { 
+
+          scores.push([score, i]); }
+      });
+
+      jQuery.each(scores.sort(function(a, b){return b[0] - a[0];}), function(){
+        jQuery(rows[ this[1] ]).show();
+        console.log(scores.length);
+        if (scores.length == 1)
+          console.log(rows[this[1]]);
+          rows[this[1]].click();
+      });
+    }
+  }
+};
+
+$(document).ready(function() {
+  $('#searchInput').liveUpdate($('.thumbnails')).focus();
+  
+  $(document).keydown(function() { $('#searchInput').focus(); $('(#searchInput').select(); })
+  /*  $.expr[':'].containsIgnoreCase = function(n,i,m){
+          return jQuery(n).text().toUpperCase().indexOf(m[3].toUpperCase())>=0;
+      };
+      $("#searchInput").keyup(function(){
+ //hide all the rows
+          var data = $(this).val().split(" ");
+            if (data[0] == ""){
+              $(".ff-items").find("li").show();
+              $("#tbody").find("tr").show();
+            }else{
+              $(".ff-items").find("li").hide();
+              $("#tbody").find("tr").hide();
+            }
+           
+ //split the current value of searchInput
+          
+ //create a jquery object of the rows
+          var jo = $("#tbody").find("tr").find("td:nth-child(2)");
+          var thumbs = $(".ff-items").find("span");
+ //Recursively filter the jquery object to get results. 
+          $.each(data, function(i, v){
+              jo = jo.filter("*:containsIgnoreCase('"+v+"')");
+              thumbs = thumbs.filter("*:containsIgnoreCase('"+v+"')");
+
+          });
+ //show the rows that match.
+          jo.parent().show();
+          thumbs.parent().parent().show();
+ //Removes the placeholder text 
+      }).focus(function(){
+          this.value="";
+          $(this).css({"color":"black"});
+          $(this).unbind('focus');
+      }).css({"color":"#C0C0C0"}); */
+  });
+  
+
+</script>
+

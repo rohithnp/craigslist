@@ -1,0 +1,208 @@
+<%- model_class = Brand -%>
+<!--
+<div class="page-header">
+  <h1><%=t '.title', :default => model_class.model_name.human %></h1>
+</div>
+
+<dl class="dl-horizontal">
+  <dt><strong><%= model_class.human_attribute_name(:name) %>:</strong></dt>
+  <dd><%= @brand.name %></dd>
+  <dt><strong><%= model_class.human_attribute_name(:discount) %>:</strong></dt>
+  <dd><%= @brand.discount %></dd>
+  <dt><strong><%= model_class.human_attribute_name(:value) %>:</strong></dt>
+  <dd><%= @brand.value %></dd>
+  <dt><strong><%= model_class.human_attribute_name(:image_url) %>:</strong></dt>
+  <dd><%= @brand.image_url %></dd>
+  <dt><strong><%= model_class.human_attribute_name(:retailer_id) %>:</strong></dt>
+  <dd><%= @brand.retailer_id %></dd>
+  <dt><strong><%= model_class.human_attribute_name(:captcha) %>:</strong></dt>
+  <dd><%= @brand.captcha %></dd>
+  
+</dl>
+
+<div class="form-actions">
+  <%= link_to t('.back', :default => t("helpers.links.back")),
+              brands_path, :class => 'btn'  %>
+  <%= link_to t('.edit', :default => t("helpers.links.edit")),
+              edit_brand_path(@brand), :class => 'btn' %>
+  <%= link_to t('.destroy', :default => t("helpers.links.destroy")),
+              brand_path(@brand),
+              :method => 'delete',
+              :data => { :confirm => t('.confirm', :default => t("helpers.links.confirm", :default => 'Are you sure?')) },
+              :class => 'btn btn-danger' %>
+</div>
+-->
+<div class="row">
+  <div class="span8 offset2">
+    <div id="holder">
+    </div>
+    <% if @brand.retailer_id != nil then %>
+      <form id="idForm" class="form-horizontal">
+        <div class="control-group">
+          <label class="control-label" for="brandName">Brand</label>
+          <div class="controls">
+            <img class="img-rounded"src="<%=@brand.image_url%>"/>
+          </div>
+        </div>  
+        <div class="control-group">
+          <label class="control-label" for="cardNumber">Card Number</label>
+          <div class="controls">
+            <input type="text" id="cardNumber" class"span6" placeholder="Card Number">
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="pin">Pin</label>
+          <div class="controls">
+            <input type="text" id="pin" placeholder="Pin">
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Captcha Image</label>
+          <div class="controls">
+            <div class="span2" id="imgHolder"></div>
+          </div>
+        </div>
+         <div id="captchaLine" class="control-group" style="display:none;">
+          <label class="control-label" for="captcha">Captcha Text</label>
+          <div class="controls">
+            <input type="text" id="captchaText" placeholder="Captcha">
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="controls">
+            <button id="submitButtonId" ype="submit" data-loading-text="Retreiving Balance" class="btn btn-large btn-block btn-primary">Get Balance</button>
+          </div>
+        </div>
+      </form>
+    <% end %>
+  </div>
+</div>
+<script>
+
+
+
+$('#submitButtonId').button();
+
+var opts = {
+  lines: 13, // The number of lines to draw
+  length: 7, // The length of each line
+  width: 4, // The line thickness
+  radius: 10, // The radius of the inner circle
+  corners: 1, // Corner roundness (0..1)
+  rotate: 0, // The rotation offset
+  color: '#000', // #rgb or #rrggbb
+  speed: 1, // Rounds per second
+  trail: 60, // Afterglow percentage
+  shadow: false, // Whether to render a shadow
+  hwaccel: false, // Whether to use hardware acceleration
+  className: 'spinner', // The CSS class to assign to the spinner
+  zIndex: 2e9, // The z-index (defaults to 2000000000)
+  top: 'auto', // Top position relative to parent in px
+  left: 'auto' // Left position relative to parent in px
+};
+
+$(".control-label").hide();
+
+if (<%= @brand.captcha %> == true){
+ var url = '/brands/getCaptcha'; // the script where you handle the form input.
+    $('#imgHolder').html("Loading Captcha Image")
+    var target = document.getElementById('imgHolder');
+    var spinner = new Spinner(opts).spin(target);
+    $('#submitButtonId').hide();
+    $.ajax({
+           type: "POST",
+           url: url,
+           data: {
+              "brandProductId":"<%= @brand.retailer_id %>"
+            },
+           dataType: "json",
+           //contentType:"application/json",
+           success: function(data)
+           {  
+              spinner.stop();
+              $('#submitButtonId').show();
+              var data = jQuery.parseJSON(data);
+               $('#imgHolder').replaceWith("<img id=\"captchaUrl\"\/>");
+               $('#captchaUrl').attr("src",'http:'+data.captchaUrl);
+               $('#captchaLine').show();
+               console.log(data ); // show response from the php script.
+               $("#submitButtonId").click(function() {
+              var captchaId = data.captchaId;
+              var url = "/brands/getBalance"; // the script where you handle the form input.
+              var target = document.getElementById('submitButtonId');
+              $('#submitButtonId').button('loading')
+
+              var spinner = new Spinner(opts).spin(target);
+              $.ajax({
+                     type: "POST",
+                     url: url,
+                     data: {
+                          "cardNumber":$('input#cardNumber').val(),
+                          "pin":$('input#pin').val(),
+                          "brandProductId":"<%= @brand.retailer_id %>",
+                          "captchaId":captchaId,
+                          "captchaInput":$('input#captchaText').val()
+
+                     },
+                     dataType: "json",
+                     success: function(data)
+                     {
+                         spinner.stop();
+                         $('#submitButtonId').button('reset')
+                         var data = jQuery.parseJSON(data);
+                         $('#captchaUrl').replaceWith("<div id=\"holder\"></div>");
+                         
+                         if (data._ERROR_MESSAGE_){
+                            $('#holder').addClass('alert alert-error');
+                            $('#holder').html(data._ERROR_MESSAGE_);
+                         } else {
+                            $('#holder').addClass('alert alert-success');
+                            $('#holder').html(data.cardBalance);
+                         }
+
+                         console.log(data); // show response from the php script.
+                     }
+                   });
+
+              return false; // avoid to execute the actual submit of the form.
+              });
+           }
+         });
+  }
+  else{
+        $('#holder').html("Not a Captcha brand")
+        // this is the id of the submit button
+        $("#submitButtonId").click(function() {
+             var target = document.getElementById('submitButtonId');
+             $('#submitButtonId').button('loading')
+
+             var spinner = new Spinner(opts).spin(target);
+//            $('#submitButtonId').button('loading')
+            var url = "/brands/getBalance"; // the script where you handle the form input.
+
+            $.ajax({
+                   type: "POST",
+                   url: url,
+                   data: {
+                        "cardNumber":$('input#cardNumber').val(),
+                        "pin":$('input#pin').val(),
+                        "brandProductId":"<%= @brand.retailer_id %>"
+
+                   },
+                   dataType: "json",
+                   success: function(data)
+                   {    
+                       spinner.stop();
+                       $('#submitButtonId').button('reset')
+                       var data = jQuery.parseJSON(data);
+                       $('#holder').html(data.cardBalance);
+
+                       console.log(data); // show response from the php script.
+                   }
+                 });
+
+            return false; // avoid to execute the actual submit of the form.
+        });
+
+  }
+  </script>

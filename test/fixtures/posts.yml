@@ -1,0 +1,13 @@
+one:
+  brand_id: 
+  title: MyString
+  price: 9.99
+  value: 9.99
+  url: MyString
+
+two:
+  brand_id: 
+  title: MyString
+  price: 9.99
+  value: 9.99
+  url: MyString
